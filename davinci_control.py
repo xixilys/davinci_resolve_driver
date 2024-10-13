@@ -23,8 +23,8 @@ width = "2160"  # 宽度
 height = "3840"  # 高度
 gradeMode = 0  # 调色模式 gradeMode : 0 - “No keyframes”, 1 - “Source Timecode aligned”, 2 - “Start Frames aligned”.
 renderPresetName = "4k_10bit_vertical"  # 渲染预设名称（注意，默认的转码预设不支持文件名为“源名称”，可以在davinci中修改预设，然后在这里输入你的预设名称）
-mediaPath = "/mnt/data/ddddddd/special_tools/vedio_development/source"  # 媒体文件夹路径
-outputPath = "/mnt/data/ddddddd/special_tools/vedio_development/output"  # 输出文件夹路径
+# mediaPath = "/mnt/data/ddddddd/special_tools/vedio_development/source"  # 媒体文件夹路径
+# outputPath = "/mnt/data/ddddddd/special_tools/vedio_development/output"  # 输出文件夹路径
 drxPath = "/mnt/data/ddddddd/special_tools/vedio_development/davincitest_1.1.1.drx"  # 静帧路径
 
 
@@ -33,8 +33,7 @@ drxPath = "/mnt/data/ddddddd/special_tools/vedio_development/davincitest_1.1.1.d
 
 # 支持的媒体文件扩展名列表
 supported_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.mxf']
-timelineName = os.path.basename(mediaPath)  # 获取mediaPath的文件夹名称作为时间线名称
-outputPath = os.path.join(outputPath, timelineName)  # 输出文件夹后面添加时间线名称（卷名）
+
 
 # —————————— 程序区域  ——————————
 
@@ -45,6 +44,7 @@ def fetchMediaFiles(path, supported_extensions):
     if not os.path.exists(path):
         print(f"路径 {path} 不存在。")
         return False
+
 
     mediaFiles = []
 
@@ -92,7 +92,7 @@ def RenderAllTimelines(resolve, presetName, targetDirectory):
 
 def IsRenderingInProgress(resolve):
     # 定义一个函数，查看渲染是否在进行中
-    projectManager = resolve.GetProjectManager()
+    projectManager = resolve.GetProjectManager ()
     project = projectManager.GetCurrentProject()
     if not project:
         return False
@@ -140,76 +140,78 @@ def ApplyDRXToAllTimelines(resolve, path, gradeMode=0):
 # 主程序
 
 # 步骤1:调用函数检查媒体文件
-mediaFiles = fetchMediaFiles(mediaPath, supported_extensions)
+def davinci_drive(media_source,media_dest):
+    timelineName = os.path.basename(media_source)  # 获取mediaPath的文件夹名称作为时间线名称
+    outputPath = os.path.join(media_dest, timelineName)  # 输出文件夹后面添加时间线名称（卷名）
+    mediaFiles = fetchMediaFiles(media_source, supported_extensions)
 
 
-# 步骤2:创建项目并设置参数
-resolve = GetResolve()
-projectManager = resolve.GetProjectManager()
-project = projectManager.LoadProject(projectName)
-if not project:
-    project = projectManager.CreateProject(projectName)
-    print(project)
-    print(f'未能找到名为"{projectName}"的项目，已创建新项目')
+    # 步骤2:创建项目并设置参数
+    resolve = GetResolve()
+    projectManager = resolve.GetProjectManager()
+    project = projectManager.LoadProject(projectName)
+    if not project:
+        project = projectManager.CreateProject(projectName)
+        print(project)
+        print(f'未能找到名为"{projectName}"的项目，已创建新项目')
 
-# 设定项目帧率、 分辨率
-project.SetSetting("timelineFrameRate", str(framerate))
-project.SetSetting("timelineResolutionWidth", str(width))
-project.SetSetting("timelineResolutionHeight", str(height))
+    # 设定项目帧率、 分辨率
+    project.SetSetting("timelineFrameRate", str(framerate))
+    project.SetSetting("timelineResolutionWidth", str(width))
+    project.SetSetting("timelineResolutionHeight", str(height))
 
-# 步骤3:将文件夹内容添加到媒体池
-
-
-
-
-mediapool = project.GetMediaPool()
-rootFolder = mediapool.GetRootFolder()
-
-# 清空整个项目中所有的folder
-folders = mediapool.GetRootFolder().GetSubFolderList()
-for folder in folders:
-    print(folder.GetName())
-    mediapool.DeleteFolders(folder)
-
-mediapool.AddSubFolder(rootFolder, timelineName)
-clips = mediapool.ImportMedia(mediaFiles)
+    # 步骤3:将文件夹内容添加到媒体池
 
 
 
-# 步骤4:创建时间线
-timeline_ok = False
-timelinecount = project.GetTimelineCount()
-for index in range(0, timelinecount):  # 遍历时间线数量，对每一条时间线都调用ApplyDRXToAllTimelineClips函数
-        timeline = project.GetTimelineByIndex(index + 1)  # 因为时间线的index是从1开始的，所以这里+1
-        if timeline.GetName() == timelineName :
-            timeline_ok = True
+
+    mediapool = project.GetMediaPool()
+    rootFolder = mediapool.GetRootFolder()
+
+    # 清空整个项目中所有的folder
+    folders = mediapool.GetRootFolder().GetSubFolderList()
+    for folder in folders:
+        mediapool.DeleteFolders(folder)
+
+    mediapool.AddSubFolder(rootFolder, timelineName)
+    clips = mediapool.ImportMedia(mediaFiles)
 
 
-if not timeline_ok:
-    timeline = mediapool.CreateEmptyTimeline(timelineName)
-    if not timeline:
-        print("无法创建时间线 '" + timelineName + "'")
+
+    # 步骤4:创建时间线
+    timeline_ok = False
+    timelinecount = project.GetTimelineCount()
+    for index in range(0, timelinecount):  
+            timeline = project.GetTimelineByIndex(index + 1)  # 因为时间线的index是从1开始的，所以这里+1
+            if timeline.GetName() == timelineName :
+                timeline_ok = True
+
+
+    if not timeline_ok:
+        timeline = mediapool.CreateEmptyTimeline(timelineName)
+        if not timeline:
+            print("无法创建时间线 '" + timelineName + "'")
+            sys.exit()
+    else:
+        timeline = project.GetCurrentTimeline()
+
+    # 按名称排序
+    clips = sorted(clips, key=lambda clip: clip.GetClipProperty("File Name"))
+
+    # 定义需要排除的文件扩展名列表
+    for clip in clips:
+        mediapool.AppendToTimeline(clip)
+
+    # 把drx文件应用到所有时间线
+
+    if not ApplyDRXToAllTimelines(resolve, drxPath, gradeMode):
+        print("不能把drx静帧应用到所有时间线")
         sys.exit()
-else:
-    timeline = project.GetCurrentTimeline()
 
-# 按名称排序
-clips = sorted(clips, key=lambda clip: clip.GetClipProperty("File Name"))
+    if not RenderAllTimelines(resolve, renderPresetName, outputPath):
+        print("渲染所有时间线时出错")
+        sys.exit()
 
-# 定义需要排除的文件扩展名列表
-for clip in clips:
-    mediapool.AppendToTimeline(clip)
+    WaitForRenderingCompletion(resolve)
 
-# 把drx文件应用到所有时间线
-
-if not ApplyDRXToAllTimelines(resolve, drxPath, gradeMode):
-    print("不能把drx静帧应用到所有时间线")
-    sys.exit()
-
-if not RenderAllTimelines(resolve, renderPresetName, outputPath):
-    print("渲染所有时间线时出错")
-    sys.exit()
-
-WaitForRenderingCompletion(resolve)
-
-print("渲染完成")
+    print("渲染完成")
