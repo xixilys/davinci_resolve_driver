@@ -13,7 +13,7 @@ import os
 
 # 输入参数区域
 
-drxPath = "/Users/freeland/Resilio Sync/FreelandCloud/B2-达芬奇云协作/调色默认节点/极浪节点-无调色.drx"  # 在这里输入drx文件的路径
+drxPath = "/mnt/data/ddddddd/special_tools/vedio_development/davincitest_1.1.1.drx"  # 在这里输入drx文件的路径
 gradeMode = 0  # 可选 0 / 1 / 2 ，默认为0
 
 

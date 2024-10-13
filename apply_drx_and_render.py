@@ -17,15 +17,15 @@ import time
 
 # —————————— 在此区域设置你的参数 ——————————
 
-projectName = "20240527PythonTest"  # 请替换为你的项目名称
-framerate = "25"  # 帧率
-width = "1920"  # 宽度
-height = "1080"  # 高度
+projectName = "script_test"  # 请替换为你的项目名称
+framerate = "59.94"  # 帧率
+width = "2160"  # 宽度
+height = "3840"  # 高度
 gradeMode = 0  # 调色模式 gradeMode : 0 - “No keyframes”, 1 - “Source Timecode aligned”, 2 - “Start Frames aligned”.
-renderPresetName = "proxy_1080p"  # 渲染预设名称（注意，默认的转码预设不支持文件名为“源名称”，可以在davinci中修改预设，然后在这里输入你的预设名称）
-mediaPath = "/Volumes/极浪B1_2T/20240522Python渲染测试/01原始素材/A001"  # 媒体文件夹路径
-outputPath = "/Volumes/极浪B1_2T/20240522Python渲染测试/02代理素材"  # 输出文件夹路径
-drxPath = "/Volumes/极浪B1_2T/20240522Python渲染测试/03静帧/极浪-Slog3cineTo709.drx"  # 静帧路径
+renderPresetName = "4k_10bit_vertical"  # 渲染预设名称（注意，默认的转码预设不支持文件名为“源名称”，可以在davinci中修改预设，然后在这里输入你的预设名称）
+mediaPath = "/mnt/data/ddddddd/special_tools/vedio_development/source"  # 媒体文件夹路径
+outputPath = "/mnt/data/ddddddd/special_tools/vedio_development/output"  # 输出文件夹路径
+drxPath = "/mnt/data/ddddddd/special_tools/vedio_development/davincitest_1.1.1.drx"  # 静帧路径
 
 
 
@@ -128,6 +128,7 @@ def ApplyDRXToAllTimelines(resolve, path, gradeMode=0):
         return False
     timelineCount = project.GetTimelineCount()  # 获取时间线数量
 
+
     for index in range(0, int(timelineCount)):  # 遍历时间线数量，对每一条时间线都调用ApplyDRXToAllTimelineClips函数
         timeline = project.GetTimelineByIndex(index + 1)  # 因为时间线的index是从1开始的，所以这里+1
         project.SetCurrentTimeline(timeline)  # 设置当前时间线
@@ -135,7 +136,6 @@ def ApplyDRXToAllTimelines(resolve, path, gradeMode=0):
             print('没有将静帧应用到所有片段')
             return False
     return True
-
 
 # 主程序
 
@@ -149,6 +149,7 @@ projectManager = resolve.GetProjectManager()
 project = projectManager.LoadProject(projectName)
 if not project:
     project = projectManager.CreateProject(projectName)
+    print(project)
     print(f'未能找到名为"{projectName}"的项目，已创建新项目')
 
 # 设定项目帧率、 分辨率
@@ -157,18 +158,40 @@ project.SetSetting("timelineResolutionWidth", str(width))
 project.SetSetting("timelineResolutionHeight", str(height))
 
 # 步骤3:将文件夹内容添加到媒体池
+
+
+
+
 mediapool = project.GetMediaPool()
 rootFolder = mediapool.GetRootFolder()
+
+# 清空整个项目中所有的folder
+folders = mediapool.GetRootFolder().GetSubFolderList()
+for folder in folders:
+    print(folder.GetName())
+    mediapool.DeleteFolders(folder)
+
 mediapool.AddSubFolder(rootFolder, timelineName)
 clips = mediapool.ImportMedia(mediaFiles)
 
-# 步骤4:创建时间线
 
-timeline = mediapool.CreateEmptyTimeline(timelineName)
-if not timeline:
-    mediapool.CreateTimeline(f"{timelineName}1")
-    print("无法创建时间线 '" + timelineName + "'")
-    sys.exit()
+
+# 步骤4:创建时间线
+timeline_ok = False
+timelinecount = project.GetTimelineCount()
+for index in range(0, timelinecount):  # 遍历时间线数量，对每一条时间线都调用ApplyDRXToAllTimelineClips函数
+        timeline = project.GetTimelineByIndex(index + 1)  # 因为时间线的index是从1开始的，所以这里+1
+        if timeline.GetName() == timelineName :
+            timeline_ok = True
+
+
+if not timeline_ok:
+    timeline = mediapool.CreateEmptyTimeline(timelineName)
+    if not timeline:
+        print("无法创建时间线 '" + timelineName + "'")
+        sys.exit()
+else:
+    timeline = project.GetCurrentTimeline()
 
 # 按名称排序
 clips = sorted(clips, key=lambda clip: clip.GetClipProperty("File Name"))
